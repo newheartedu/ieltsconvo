@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IELTS AI Practice Hub</title>
+    
+    <!-- 1. 載入 Tailwind CSS (樣式) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. 載入 React 和 ReactDOM (核心框架) -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    
+    <!-- 3. 載入 Babel (讓瀏覽器看懂 JSX) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- 4. 載入 Framer Motion (動畫) -->
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+
+    <!-- 5. 載入 FontAwesome (圖示) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const { motion, AnimatePresence } = window.Motion;
+
+        // --- 模擬資料 (Topic Banks) ---
+        const INITIAL_PART1 = [
+            { topic: "Hometown", questions: ["Where do you live?", "What do you like about your hometown?", "Are there any famous landmarks there?", "Would you like to live there in the future?"] },
+            { topic: "Work or Studies", questions: ["Do you work or are you a student?", "Why did you choose this job/subject?", "What is the most difficult part of it?", "What are your future career plans?"] },
+            { topic: "Hobbies", questions: ["What do you like to do in your spare time?", "When did you start this hobby?", "Why do you think hobbies are important?", "Is there a new hobby you would like to try?"] },
+            { topic: "Weather", questions: ["What is your favorite kind of weather?", "What is the climate like in your hometown?", "Does weather affect your mood?", "Do you like rainy days?"] },
+            { topic: "Food", questions: ["What is your favorite food?", "Are you good at cooking?", "What did you like to eat as a child?", "Do you think a healthy diet is important?"] },
+            { topic: "Family", questions: ["How many people are there in your family?", "Who are you closest to in your family?", "What do you usually do with your family on weekends?", "Do you prefer large families or small families?"] },
+            { topic: "Friends", questions: ["Who is your best friend?", "What do you usually do with your friends?", "Do you think friends are important?", "Do you prefer spending time alone or with friends?"] },
+            { topic: "Daily Routine", questions: ["What time do you usually wake up?", "What is your favorite part of the day?", "Is your daily routine structured?", "Would you like to change your daily routine?"] },
+            { topic: "Travel", questions: ["Do you like traveling?", "Where is the most impressive place you have visited?", "Do you prefer traveling alone or in a group?", "Where would you like to travel in the future?"] },
+            { topic: "Technology", questions: ["Do you use computers every day?", "How has technology changed your life?", "What do you think about AI?", "Do you use social media often?"] }
+        ];
+        const INITIAL_PART2 = [
+            { title: "Describe a book you read", points: ["What it was", "Why you read it", "What you learned", "Why you recommend it"] },
+            { title: "Describe a person you respect", points: ["Who is it", "How you know them", "Their qualities", "Why you respect them"] },
+            { title: "Describe a memorable trip", points: ["Where you went", "Who you went with", "What you did", "Why it was memorable"] },
+            { title: "Describe a special gift", points: ["What it was", "Who gave it to you", "When you received it", "Why it was special"] },
+            { title: "Describe a sport you like", points: ["What sport it is", "How you play it", "Is it popular", "Why you like it"] },
+            { title: "Describe a useful website", points: ["What the website is", "How often you use it", "What you use it for", "Why it is useful"] },
+            { title: "Describe a movie you like", points: ["What the movie is", "When you watched it", "What it is about", "Why you like it"] },
+            { title: "Describe a skill you learned", points: ["What the skill is", "Who taught you", "How long it took", "How it helps you"] },
+            { title: "Describe a party you attended", points: ["Whose party it was", "Where it was held", "What happened", "Did you enjoy it"] },
+            { title: "Describe a historical event", points: ["What the event was", "When it happened", "Why it is important", "How you learned about it"] }
+        ];
+        const INITIAL_PART3 = [
+            { topic: "Technology", questions: ["How has tech changed study?", "Pros/Cons of online learning?", "Will AI replace teachers?", "Tech for disabilities?"] },
+            { topic: "Education", questions: ["Is university education important?", "Should education be free?", "What makes a good teacher?", "How do children learn best?"] },
+            { topic: "Environment", questions: ["What are major environmental problems?", "Who should protect nature?", "Is recycling important?", "How to teach kids about nature?"] },
+            { topic: "Globalization", questions: ["Pros/Cons of globalization?", "Does it affect culture?", "Will we all speak one language?", "Impact on local businesses?"] },
+            { topic: "Health", questions: ["How to stay healthy?", "Is mental health important?", "Should government pay for healthcare?", "Modern vs traditional medicine?"] },
+            { topic: "Employment", questions: ["What makes a good job?", "Is salary the most important?", "Impact of robots on jobs?", "Work-life balance importance?"] },
+            { topic: "Transport", questions: ["Best way to travel in cities?", "Future of transport?", "Should cars be banned?", "Public vs private transport?"] },
+            { topic: "Advertising", questions: ["Does advertising influence us?", "Should ads be banned for kids?", "Is advertising necessary?", "Funny vs serious ads?"] },
+            { topic: "Art", questions: ["Is art important?", "Should government fund art?", "Can anyone be an artist?", "Traditional vs modern art?"] },
+            { topic: "Traditions", questions: ["Are traditions important?", "Why do some traditions die?", "How to preserve culture?", "Festivals in your country?"] }
+        ];
+        const INITIAL_TASK1 = [
+            "The chart shows coffee production in 3 countries (1990-2020).",
+            "The diagram shows how chocolate is made.",
+            "The map shows the development of a town (2000 vs 2020).",
+            "The bar chart compares household spending in 2010 and 2020.",
+            "The table gives unemployment rates in 4 countries in 2015.",
+            "The pie charts illustrate energy sources in 1980 and 2010.",
+            "The process diagram shows how bricks are manufactured.",
+            "The line graph shows average monthly temperatures in London.",
+            "The map illustrates changes to a university campus.",
+            "The bar chart shows gender distribution in different subjects."
+        ];
+        const INITIAL_TASK2 = [
+            "Some say technology makes us isolated. Agree/Disagree?",
+            "Should governments spend more on rail or roads?",
+            "Pros and cons of working from home.",
+            "Is it better to learn a language as a child or adult?",
+            "Should university education be free for everyone?",
+            "Protecting the environment vs economic growth. Discuss.",
+            "Is history important for the future?",
+            "Influence of television on children's behavior.",
+            "Does tourism bring more harm than good?",
+            "Should men and women have equal roles in the army?"
+        ];
+
+        // --- 工具函數 ---
+        const countWords = (str) => (str || "").trim().split(/\s+/).filter(Boolean).length;
+        
+        const parseGeminiJSON = (text) => {
+            try {
+                let jsonStr = text.replace(/```json\n?|```/g, '').trim();
+                const firstBrace = jsonStr.indexOf('{');
+                const lastBrace = jsonStr.lastIndexOf('}');
+                if (firstBrace >= 0 && lastBrace >= 0) jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+                return JSON.parse(jsonStr);
+            } catch (e) {
+                console.error("JSON Parse Error", e);
+                throw new Error("無法解析 AI 回傳的 JSON");
+            }
+        };
+
+        // --- 元件：計時器 ---
+        const Timer = ({ initialTime, colorClass }) => {
+            const [time, setTime] = useState(initialTime);
+            const [isRunning, setIsRunning] = useState(false);
+            
+            useEffect(() => {
+                let interval;
+                if (isRunning && time > 0) {
+                    interval = setInterval(() => setTime(t => t - 1), 1000);
+                } else if (time === 0) {
+                    setIsRunning(false);
+                }
+                return () => clearInterval(interval);
+            }, [isRunning, time]);
+
+            const format = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+            const reset = () => { setIsRunning(false); setTime(initialTime); };
+
+            return (
+                <div className="flex items-center justify-between p-4 bg-white rounded-lg shadow border border-gray-200 my-4">
+                    <div className="space-x-2">
+                        <button onClick={() => setIsRunning(true)} className={`px-3 py-1 rounded text-white ${colorClass}`}><i className="fas fa-play"></i></button>
+                        <button onClick={() => setIsRunning(false)} className={`px-3 py-1 rounded text-white bg-gray-400`}><i className="fas fa-pause"></i></button>
+                        <button onClick={reset} className={`px-3 py-1 rounded text-white bg-gray-500`}><i className="fas fa-rotate-left"></i></button>
+                    </div>
+                    <div className={`text-3xl font-mono font-bold ${colorClass.replace('bg-', 'text-')}`}>{format(time)}</div>
+                </div>
+            );
+        };
+
+        // --- 元件：AI 結果卡片 ---
+        const AIResultCard = ({ title, children, isLoading, error }) => (
+            <div className="mt-4 p-4 bg-white rounded-lg shadow-inner border border-gray-200">
+                <h3 className="font-bold text-gray-700 mb-2 flex items-center"><i className="fas fa-robot mr-2"></i> {title}</h3>
+                {isLoading ? <div className="text-center py-4 text-blue-500"><i className="fas fa-spinner fa-spin fa-2x"></i><p>AI 生成中...</p></div> : 
+                 error ? <div className="text-red-500 bg-red-50 p-2 rounded">{error}</div> : 
+                 <div className="prose max-w-none text-sm text-gray-700">{children}</div>}
+            </div>
+        );
+
+        // --- 主要功能頁面：Speaking ---
+        const SpeakingSection = ({ apiKey, part, topics, setTopics }) => {
+            const [currentTopic, setCurrentTopic] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [sample, setSample] = useState(null);
+            const [showSample, setShowSample] = useState(false);
+
+            const color = part === 1 ? 'bg-green-500' : part === 2 ? 'bg-yellow-500' : 'bg-blue-500';
+
+            const generateTopic = async () => {
+                if (!apiKey) return alert("請先在右上角設定 API Key");
+                setLoading(true);
+                try {
+                    // 簡化的 Prompt
+                    const prompt = part === 2 
+                        ? "Generate one IELTS Speaking Part 2 cue card JSON: {title: string, points: string[]}" 
+                        : `Generate one IELTS Speaking Part ${part} topic JSON: {topic: string, questions: string[]}`;
+                    
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    const data = await response.json();
+                    const text = data.candidates[0].content.parts[0].text;
+                    const newTopic = parseGeminiJSON(text);
+                    
+                    setTopics(prev => [newTopic, ...prev]);
+                    setCurrentTopic(newTopic);
+                    setSample(null);
+                    setShowSample(false);
+                } catch (e) {
+                    alert("生成失敗: " + e.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const generateSample = async () => {
+                if (!currentTopic || !apiKey) return;
+                setLoading(true);
+                setShowSample(true);
+                try {
+                    const prompt = `Provide 3 sample answers (Band 6-7, 7-8, 9) for IELTS Speaking Part ${part}. Topic: ${JSON.stringify(currentTopic)}. Return JSON: {band6_7: string, band7_8: string, band9: string}. Keep formatted cleanly.`;
+                     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    const data = await response.json();
+                    const text = data.candidates[0].content.parts[0].text;
+                    setSample(parseGeminiJSON(text));
+                } catch (e) {
+                    console.error(e);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="animate-fade-in">
+                    <div className="flex gap-2 mb-4">
+                        <select className="flex-1 p-2 border rounded" onChange={(e) => setCurrentTopic(topics[e.target.value])}>
+                            <option value="">-- 選擇歷史題目 --</option>
+                            {topics.map((t, i) => <option key={i} value={i}>{t.topic || t.title}</option>)}
+                        </select>
+                        <button onClick={generateTopic} disabled={loading} className={`px-4 py-2 text-white rounded shadow ${color}`}>
+                            {loading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-magic"></i>} 新題
+                        </button>
+                    </div>
+
+                    {currentTopic && (
+                        <div className="bg-white p-6 rounded-lg shadow border border-gray-200 mb-4">
+                            <h2 className="text-xl font-bold mb-4 text-gray-800">{currentTopic.topic || currentTopic.title}</h2>
+                            <ul className="list-disc pl-5 space-y-2 text-gray-700">
+                                {part === 2 
+                                    ? currentTopic.points.map((p, i) => <li key={i}>{p}</li>)
+                                    : currentTopic.questions.map((q, i) => <li key={i}>{q}</li>)
+                                }
+                            </ul>
+                        </div>
+                    )}
+
+                    <Timer initialTime={part === 2 ? 120 : 60} colorClass={color} />
+
+                    {currentTopic && (
+                        <button onClick={() => sample ? setShowSample(!showSample) : generateSample()} className="w-full py-2 bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-bold transition">
+                            {showSample ? "隱藏範例" : sample ? "顯示範例" : "🪄 生成 AI 範例答案"}
+                        </button>
+                    )}
+
+                    {showSample && (
+                        <AIResultCard title="AI 範例" isLoading={loading && !sample}>
+                            {sample && (
+                                <div className="space-y-4">
+                                    <div><span className="text-green-600 font-bold">Band 6-7:</span> <p>{sample.band6_7}</p></div>
+                                    <hr/>
+                                    <div><span className="text-orange-600 font-bold">Band 7-8:</span> <p>{sample.band7_8}</p></div>
+                                    <hr/>
+                                    <div><span className="text-blue-600 font-bold">Band 9:</span> <p>{sample.band9}</p></div>
+                                </div>
+                            )}
+                        </AIResultCard>
+                    )}
+                </div>
+            );
+        };
+
+        // --- 主要功能頁面：Writing ---
+        const WritingSection = ({ apiKey, task, topics, setTopics }) => {
+            const [currentTopic, setCurrentTopic] = useState("");
+            const [text, setText] = useState("");
+            const [loading, setLoading] = useState(false);
+            const [sample, setSample] = useState(null);
+            const [showSample, setShowSample] = useState(false);
+            
+            const color = task === 1 ? 'bg-gray-600' : 'bg-indigo-600';
+
+            const generateTopic = async () => {
+                if (!apiKey) return alert("請先設定 API Key");
+                setLoading(true);
+                try {
+                    const prompt = `Generate one IELTS Writing Task ${task} topic. Return just the topic string.`;
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    const data = await response.json();
+                    const newTopic = data.candidates[0].content.parts[0].text;
+                    setTopics(prev => [newTopic, ...prev]);
+                    setCurrentTopic(newTopic);
+                    setSample(null);
+                    setShowSample(false);
+                } catch (e) { alert("Error: " + e.message); } finally { setLoading(false); }
+            };
+
+             const generateSample = async () => {
+                if (!currentTopic || !apiKey) return;
+                setLoading(true);
+                setShowSample(true);
+                try {
+                    const prompt = `Provide 3 sample essays (Band 6.5, 7.5, 9) for this IELTS Task ${task}: "${currentTopic}". JSON: {band6_7: {outline: string, answer: string}, band7_8: {outline: string, answer: string}, band9: {outline: string, answer: string}}`;
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    const data = await response.json();
+                    setSample(parseGeminiJSON(data.candidates[0].content.parts[0].text));
+                } catch (e) { console.error(e); } finally { setLoading(false); }
+            };
+
+            return (
+                <div>
+                    <div className="flex gap-2 mb-4">
+                        <select className="flex-1 p-2 border rounded" onChange={(e) => setCurrentTopic(topics[e.target.value])}>
+                            <option value="">-- 選擇題目 --</option>
+                            {topics.map((t, i) => <option key={i} value={i}>{t.substring(0, 50)}...</option>)}
+                        </select>
+                        <button onClick={generateTopic} disabled={loading} className={`px-4 py-2 text-white rounded shadow ${color}`}>
+                             {loading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-magic"></i>}
+                        </button>
+                    </div>
+                    {currentTopic && <div className="p-4 bg-white border rounded mb-4 font-medium">{currentTopic}</div>}
+                    <Timer initialTime={task === 1 ? 1200 : 2400} colorClass={color} />
+                    <textarea className="w-full h-60 p-3 border rounded mb-4" placeholder="開始寫作..." value={text} onChange={e => setText(e.target.value)}></textarea>
+                    
+                     {currentTopic && (
+                        <button onClick={() => sample ? setShowSample(!showSample) : generateSample()} className="w-full py-2 bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-bold transition">
+                            {showSample ? "隱藏範例" : sample ? "顯示範例" : "🪄 生成 AI 範文"}
+                        </button>
+                    )}
+                    
+                    {showSample && (
+                        <AIResultCard title="AI 範文" isLoading={loading && !sample}>
+                            {sample && ["band6_7", "band7_8", "band9"].map(band => (
+                                <div key={band} className="mb-4">
+                                    <h4 className="font-bold capitalize text-indigo-600">{band.replace('_', '-')} ({countWords(sample[band]?.answer)} words)</h4>
+                                    <p className="bg-gray-100 p-2 text-xs mb-2 rounded">{sample[band]?.outline}</p>
+                                    <p className="whitespace-pre-wrap">{sample[band]?.answer}</p>
+                                    <hr className="my-2"/>
+                                </div>
+                            ))}
+                        </AIResultCard>
+                    )}
+                </div>
+            );
+        };
+
+        // --- 主程式 ---
+        const App = () => {
+            const [view, setView] = useState('home');
+            const [subView, setSubView] = useState(1);
+            const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
+            const [showSettings, setShowSettings] = useState(false);
+
+            // LocalStorage Persistence (簡化版資料庫)
+            const [p1Topics, setP1Topics] = useState(() => JSON.parse(localStorage.getItem('p1')) || INITIAL_PART1);
+            const [p2Topics, setP2Topics] = useState(() => JSON.parse(localStorage.getItem('p2')) || INITIAL_PART2);
+            const [p3Topics, setP3Topics] = useState(() => JSON.parse(localStorage.getItem('p3')) || INITIAL_PART3);
+            const [t1Topics, setT1Topics] = useState(() => JSON.parse(localStorage.getItem('t1')) || INITIAL_TASK1);
+            const [t2Topics, setT2Topics] = useState(() => JSON.parse(localStorage.getItem('t2')) || INITIAL_TASK2);
+
+            useEffect(() => { localStorage.setItem('p1', JSON.stringify(p1Topics)); }, [p1Topics]);
+            useEffect(() => { localStorage.setItem('p2', JSON.stringify(p2Topics)); }, [p2Topics]);
+            useEffect(() => { localStorage.setItem('p3', JSON.stringify(p3Topics)); }, [p3Topics]);
+            useEffect(() => { localStorage.setItem('t1', JSON.stringify(t1Topics)); }, [t1Topics]);
+            useEffect(() => { localStorage.setItem('t2', JSON.stringify(t2Topics)); }, [t2Topics]);
+
+            const saveKey = (val) => {
+                setApiKey(val);
+                localStorage.setItem('gemini_api_key', val);
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-100 pb-10">
+                    {/* Navbar */}
+                    <nav className="bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 z-50">
+                        <div className="font-bold text-xl text-blue-600 cursor-pointer flex items-center" onClick={() => setView('home')}>
+                            <i className="fas fa-graduation-cap mr-2"></i> IELTS Hub
+                        </div>
+                        <button onClick={() => setShowSettings(true)} className="text-gray-500 hover:text-blue-600">
+                            <i className="fas fa-cog fa-lg"></i>
+                        </button>
+                    </nav>
+
+                    {/* Settings Modal */}
+                    {showSettings && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white p-6 rounded-lg max-w-md w-full">
+                                <h3 className="font-bold text-lg mb-4">設定</h3>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Gemini API Key</label>
+                                <input 
+                                    type="password" 
+                                    className="w-full p-2 border rounded mb-4" 
+                                    value={apiKey} 
+                                    onChange={(e) => saveKey(e.target.value)}
+                                    placeholder="貼上你的 API Key"
+                                />
+                                <p className="text-xs text-gray-500 mb-4">Key 會儲存在你的瀏覽器中，不會上傳到伺服器。</p>
+                                <button onClick={() => setShowSettings(false)} className="w-full bg-blue-600 text-white py-2 rounded">完成</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Main Content */}
+                    <div className="container mx-auto max-w-3xl p-4 mt-4">
+                        {view === 'home' ? (
+                            <div className="space-y-6 text-center py-10">
+                                <h1 className="text-4xl font-extrabold text-gray-800">雅思 AI 練習助手</h1>
+                                <p className="text-gray-600">選擇模式開始練習，使用 Gemini AI 生成題目與範例</p>
+                                <div className="grid md:grid-cols-2 gap-6 mt-8">
+                                    <div onClick={() => { setView('speaking'); setSubView(1); }} className="bg-white p-8 rounded-xl shadow-lg cursor-pointer hover:shadow-xl transition transform hover:-translate-y-1 border-t-4 border-green-500">
+                                        <i className="fas fa-microphone-lines text-5xl text-green-500 mb-4"></i>
+                                        <h2 className="text-2xl font-bold text-gray-800">口說練習</h2>
+                                        <p className="text-gray-500 mt-2">Part 1, 2, 3 模擬 & 範例</p>
+                                    </div>
+                                    <div onClick={() => { setView('writing'); setSubView(1); }} className="bg-white p-8 rounded-xl shadow-lg cursor-pointer hover:shadow-xl transition transform hover:-translate-y-1 border-t-4 border-indigo-500">
+                                        <i className="fas fa-pen-nib text-5xl text-indigo-500 mb-4"></i>
+                                        <h2 className="text-2xl font-bold text-gray-800">寫作練習</h2>
+                                        <p className="text-gray-500 mt-2">Task 1 & 2 題目 & 範文</p>
+                                    </div>
+                                </div>
+                                {!apiKey && <div className="text-red-500 bg-red-100 p-2 rounded inline-block mt-4">⚠️ 請點擊右上角設定輸入 Gemini API Key 才能使用 AI 功能</div>}
+                            </div>
+                        ) : (
+                            <div>
+                                <button onClick={() => setView('home')} className="mb-4 text-gray-500 hover:text-gray-800"><i className="fas fa-arrow-left"></i> 返回主頁</button>
+                                
+                                {/* Sub-nav Tabs */}
+                                <div className="flex mb-6 bg-white rounded-lg p-1 shadow-sm">
+                                    {view === 'speaking' 
+                                        ? [1, 2, 3].map(p => (
+                                            <button key={p} onClick={() => setSubView(p)} className={`flex-1 py-2 rounded ${subView === p ? 'bg-blue-100 text-blue-700 font-bold' : 'text-gray-500'}`}>Part {p}</button>
+                                        ))
+                                        : [1, 2].map(t => (
+                                            <button key={t} onClick={() => setSubView(t)} className={`flex-1 py-2 rounded ${subView === t ? 'bg-indigo-100 text-indigo-700 font-bold' : 'text-gray-500'}`}>Task {t}</button>
+                                        ))
+                                    }
+                                </div>
+
+                                <div className="bg-white rounded-xl shadow-lg p-6 min-h-[400px]">
+                                    <h2 className="text-2xl font-bold mb-6 border-b pb-2">
+                                        {view === 'speaking' ? `Speaking Part ${subView}` : `Writing Task ${subView}`}
+                                    </h2>
+                                    
+                                    {view === 'speaking' && subView === 1 && <SpeakingSection apiKey={apiKey} part={1} topics={p1Topics} setTopics={setP1Topics} />}
+                                    {view === 'speaking' && subView === 2 && <SpeakingSection apiKey={apiKey} part={2} topics={p2Topics} setTopics={setP2Topics} />}
+                                    {view === 'speaking' && subView === 3 && <SpeakingSection apiKey={apiKey} part={3} topics={p3Topics} setTopics={setP3Topics} />}
+                                    
+                                    {view === 'writing' && subView === 1 && <WritingSection apiKey={apiKey} task={1} topics={t1Topics} setTopics={setT1Topics} />}
+                                    {view === 'writing' && subView === 2 && <WritingSection apiKey={apiKey} task={2} topics={t2Topics} setTopics={setT2Topics} />}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
